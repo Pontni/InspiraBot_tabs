@@ -47,16 +47,10 @@ def _open_image_any(path1: str, path2: str):
             pass
     raise FileNotFoundError(f"Could not find image at {path1} or {path2}")
 
-# Small header row: bot image (left) + title & subtitle (right)
-with st.container():
-    col_img, col_text = st.columns([1, 5], vertical_alignment="center")
-    with col_img:
-        _img = _open_image_any("InspiraBot.png", os.path.join("assets", "InspiraBot.png"))
-        if _img:
-            st.image(_img, width=96)
-    with col_text:
-        st.title("InspiraBot")
-        st.caption("A friendly AI for educational storytelling — follow the tabs left to right.")
+# ---- Simple header (like the inspiration) ----
+st.title("InspiraBot")
+st.caption("A friendly AI for educational storytelling — follow the tabs left to right.")
+
 
 # Optional CSS — remove bubble/bg only for assistant messages using Avatar.png
 st.markdown(
