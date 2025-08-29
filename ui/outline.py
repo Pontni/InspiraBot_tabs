@@ -1,4 +1,3 @@
-
 import streamlit as st
 from ui.common import require_unlocked_for_outline, render_chat_area
 
