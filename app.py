@@ -47,9 +47,6 @@ st.markdown("""
 
 # ---- Simple header (like the inspiration) ----
 st.image("assets/banner.png", use_container_width=True)
-st.title("InspiraBot")
-st.caption("A friendly AI for educational storytelling — follow the tabs left to right.")
-
 
 # Optional CSS — remove bubble/bg only for assistant messages using Avatar.png
 st.markdown(
