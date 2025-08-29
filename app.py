@@ -39,7 +39,7 @@ st.set_page_config(
 #tabs 
 st.markdown("""
 <style>
-.stTabs [data-baseweb="tab"] { font-size: 1.1rem; padding: .6rem 1rem; }
+.stTabs [data-baseweb="tab"] { font-size: 3rem; padding: .6rem 1rem; }
 .stTabs [data-baseweb="tab"][aria-selected="true"] { border-bottom: 3px solid var(--primary-color); font-weight: 600; }
 </style>
 """, unsafe_allow_html=True)
