@@ -42,21 +42,22 @@ def require_unlocked_for_outline() -> None:
         lock_card("Complete and submit the *Key Pieces form* to start the Outline.")
         st.stop()
 
-def render_chat_area():
+def render_chat_area(input_key: str = "chat_input"):
     """Replays chat history and streams assistant replies using the
-    existing st.session_state.chat session created in app.py."""
+    existing st.session_state.chat session created in app.py.
+    `input_key` must be unique per tab to avoid duplicate element ids."""
     if not st.session_state.get("form_valid", False):
-        lock_card("Please complete and submit Key Pieces to start chatting.")
+        lock_card("Please complete and submit the *Key Pieces form* to start chatting.")
         st.stop()
 
-    # Replay previous turns
+    # Replay history
     for msg in st.session_state.get("chat_history", []):
         avatar = "👩🏼‍💻" if msg["role"] == "user" else st.session_state.get("assistant_avatar", "Avatar.png")
         with st.chat_message(msg["role"], avatar=avatar):
             st.markdown(msg["parts"])
 
-    # New input
-    user_prompt = st.chat_input("Message InspiraBot…")
+    # Unique chat input per tab
+    user_prompt = st.chat_input("Message InspiraBot…", key=input_key)
     if not user_prompt:
         return
 
@@ -71,15 +72,14 @@ def render_chat_area():
         parts = []
         try:
             for chunk in st.session_state.chat.send_message_stream(user_prompt):
-                text = getattr(chunk, "text", None)
-                if text:
-                    parts.append(text)
+                if getattr(chunk, "text", None):
+                    parts.append(chunk.text)
                     placeholder.markdown("".join(parts) + "▌")
-                    time.sleep(0.01)
-            full = "".join(parts) if parts else ""
-            placeholder.markdown(full or "_No response text received._")
         except Exception as e:
             full = f"❌ Error from Gemini (streaming): {e}"
             placeholder.error(full)
+        else:
+            full = "".join(parts) if parts else ""
+            placeholder.markdown(full or "_No response text received._")
 
     st.session_state.chat_history.append({"role": "assistant", "parts": full})
