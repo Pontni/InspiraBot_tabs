@@ -35,7 +35,6 @@ st.set_page_config(
     page_title="InspiraBot — Educational Story Builder",
     page_icon="🤖",
     layout="wide",
-    initial_sidebar_state="expanded",
 )
 
 # --- Helper: safe image open (supports /assets fallback) ----------------------
