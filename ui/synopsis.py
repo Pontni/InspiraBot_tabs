@@ -1,3 +1,4 @@
+import streamlit as st
 from ui.common import render_chat_area
 
 def render():
