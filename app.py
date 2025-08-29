@@ -46,12 +46,18 @@ def _open_image_any(path1: str, path2: str):
             pass
     raise FileNotFoundError(f"Could not find image at {path1} or {path2}")
 
-# Display bot image (keeps your original caption)
-try:
-    img = _open_image_any("InspiraBot.png", os.path.join("assets", "InspiraBot.png"))
-    st.image(img, caption="Bot Created by I. Pont-Niclos (2025)", use_container_width=True)
-except Exception as e:
-    st.error(f"Error loading image: {e}")
+# === BEGIN PATCH: compact-header ===
+# Small header row: bot image (left) + title & subtitle (right)
+with st.container():
+    col_img, col_text = st.columns([1, 5], vertical_alignment="center")
+    with col_img:
+        _img = _open_image_any("InspiraBot.png", os.path.join("assets", "InspiraBot.png"))
+        if _img:
+            st.image(_img, width=96)
+    with col_text:
+        st.title("InspiraBot")
+        st.caption("A friendly AI for educational storytelling — follow the tabs left to right.")
+# === END PATCH: compact-header ===
 
 st.title("InspiraBot")
 
