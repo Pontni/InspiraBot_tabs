@@ -3,27 +3,30 @@ import streamlit as st
 from .common import looks_gibberish, build_form_context
 
 def render():
-    # --- USER INPUT FORM (moved intact from app.py) ---
+    st.header("🌱 Set up your Story Brief")
+    st.write("Tell the bot your context so guidance fits your class.")
+
+    # --- FORM --------------------------------------------------------------
     with st.form("story_form"):
         educational_level = st.text_input(
-            "Educational level", 
-            placeholder="e.g., Elementary school, Primary school, Secondary school, University"
+            "Educational level",
+            placeholder="e.g., Elementary school, Primary school, Secondary school, University",
         )
         topic = st.text_input(
-            "Scientific concept or topic", 
-            placeholder="e.g., Photosynthesis, Human digestion, Renewable energy, Chemical reactions"
+            "Scientific concept or topic",
+            placeholder="e.g., Photosynthesis, Human digestion, Renewable energy, Chemical reactions",
         )
         genre = st.text_input(
-            "Genre", 
-            placeholder="e.g., Fantasy, Detective story, Science fiction"
+            "Genre",
+            placeholder="e.g., Fantasy, Detective story, Science fiction",
         )
         setting = st.text_input(
-            "Story setting", 
-            placeholder="e.g., Imaginary world, Real World, Blended"
+            "Story setting",
+            placeholder="e.g., Imaginary world, Real World, Blended",
         )
         goals = st.text_area(
-            "Additional curricular goals or SDG link (optional)", 
-            placeholder="e.g., SDG 7 Affordable and Clean Energy; inquiry skills; collaboration"
+            "Additional curricular goals or SDG link (optional)",
+            placeholder="e.g., SDG 7 Affordable and Clean Energy; inquiry skills; collaboration",
         )
 
         col1, col2 = st.columns(2)
@@ -32,12 +35,13 @@ def render():
         with col2:
             modify = st.form_submit_button("✏️ Modify", use_container_width=True)
 
-    # Ensure stores
+    # --- STATE DEFAULTS ----------------------------------------------------
     st.session_state.setdefault("form_data", {})
     st.session_state.setdefault("form_feedback", "")
     st.session_state.setdefault("form_valid", False)
     st.session_state.setdefault("form_context_sent", False)
 
+    # --- SUBMIT HANDLER ----------------------------------------------------
     if submitted:
         st.session_state["form_data"] = {
             "Educational level": educational_level.strip(),
@@ -47,10 +51,9 @@ def render():
             "Additional information": goals.strip(),
         }
 
-        # Simple validations (keep tone friendly)
         problems = []
         for label, value in st.session_state["form_data"].items():
-            if label in ("Educational level","Scientific concept or topic","Genre","Story setting"):
+            if label in ("Educational level", "Scientific concept or topic", "Genre", "Story setting"):
                 if looks_gibberish(value):
                     problems.append(f"Please clarify **{label}** (avoid random strings).")
 
@@ -61,7 +64,7 @@ def render():
             st.session_state["form_feedback"] = "Good start! Let’s move on to the outline of your story."
             st.session_state["form_valid"] = True
 
-            # One-time: prime the chat with the validated brief
+            # One-time: silently prime the chat with the validated brief
             if not st.session_state.get("form_context_sent", False):
                 try:
                     context_msg = build_form_context(st.session_state["form_data"])
@@ -73,11 +76,10 @@ def render():
     elif modify:
         st.info("✏️ You can adjust your answers above and submit again when ready.")
 
-    # Feedback
+    # --- FEEDBACK ----------------------------------------------------------
     if st.session_state["form_feedback"]:
         if st.session_state["form_valid"]:
             st.success(st.session_state["form_feedback"])
         else:
             st.error(st.session_state["form_feedback"])
 # === END FILE ===
-
