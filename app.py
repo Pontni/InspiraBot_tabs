@@ -23,6 +23,7 @@
 import streamlit as st
 from PIL import Image
 import os, time
+from textwrap import dedent
 
 # --- Google GenAI imports ---------------------------
 from google import genai
