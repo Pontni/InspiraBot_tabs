@@ -1,6 +1,7 @@
-# === BEGIN FILE: ui/key_pieces.py ===
+# -*- coding: utf-8 -*-
+# === FILE: ui/key_pieces.py ===
 import streamlit as st
-from .common import looks_gibberish, build_form_context
+from ui.common import looks_gibberish, build_form_context  # absolute import to avoid parser edge cases
 
 def render():
     st.header("🌱 Set up your Story Brief")
@@ -55,13 +56,13 @@ def render():
         for label, value in st.session_state["form_data"].items():
             if label in ("Educational level", "Scientific concept or topic", "Genre", "Story setting"):
                 if looks_gibberish(value):
-                    problems.append(f"Please clarify **{label}** (avoid random strings).")
+                    problems.append(f"Please clarify {label} (avoid random strings).")
 
         if problems:
             st.session_state["form_feedback"] = " ".join(problems) or "Please fix the highlighted fields."
             st.session_state["form_valid"] = False
         else:
-            st.session_state["form_feedback"] = "Good start! Let’s move on to the outline of your story."
+            st.session_state["form_feedback"] = "Good start! Let's move on to the outline of your story."
             st.session_state["form_valid"] = True
 
             # One-time: silently prime the chat with the validated brief
@@ -82,4 +83,3 @@ def render():
             st.success(st.session_state["form_feedback"])
         else:
             st.error(st.session_state["form_feedback"])
-# === END FILE ===
