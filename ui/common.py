@@ -45,7 +45,7 @@ def render_chat_area():
     # Replay history
     with st.container():
         for msg in st.session_state.get("chat_history", []):
-            avatar = "👩🏼‍💻" if msg["role"] == "user" else "Avatar.png"
+            avatar = "👩🏼‍💻" if msg["role"] == "user" else st.session_state.get("assistant_avatar", "Avatar.png")
             with st.chat_message(msg["role"], avatar=avatar):
                 st.markdown(msg["parts"])
 
@@ -53,7 +53,7 @@ def render_chat_area():
     user_prompt = st.chat_input("Message InspiraBot…")
     if user_prompt:
         st.session_state.chat_history.append({"role": "user", "parts": user_prompt})
-        with st.chat_message("user", avatar="👩🏼‍💻"):
+        with st.chat_message("assistant", avatar=st.session_state.get("assistant_avatar", "Avatar.png")):
             st.markdown(user_prompt)
 
         with st.chat_message("assistant", avatar="Avatar.png"):
