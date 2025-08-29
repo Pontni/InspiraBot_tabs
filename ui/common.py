@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+
 import time
 import streamlit as st
 
@@ -31,12 +31,15 @@ def build_form_context(form_data: dict) -> str:
     lines.append("Next: acknowledge briefly and proceed with outlining when prompted.")
     return "\n".join(lines)
 
+# --- Warning card helper (yellow) ---
 def lock_card(msg: str) -> None:
-    st.info("🟨 " + msg)
+    # Unified yellow warning card
+    st.warning(msg)
 
+# --- Gate: Outline requires a valid Key Pieces form ---
 def require_unlocked_for_outline() -> None:
     if not st.session_state.get("form_valid", False):
-        lock_card("Complete and submit Key Pieces to start the Outline.")
+        lock_card("Complete and submit the *Key Pieces form* to start the Outline.")
         st.stop()
 
 def render_chat_area():
