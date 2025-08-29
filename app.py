@@ -130,7 +130,13 @@ if "assistant_avatar" not in st.session_state:
     )
 
 # --- Tabs glue ---------------------------------------------------------------
-from ui import intro, key_pieces, outline, synopsis, brainstorm, drafting
+
+import ui.intro as intro
+import ui.key_pieces as key_pieces
+import ui.outline as outline
+import ui.synopsis as synopsis
+import ui.brainstorm as brainstorm
+import ui.drafting as drafting
 
 TAB_LABELS = ["👋 Intro", "🌱 Key Pieces", "💭 Outline", "📝 Synopsis", "🧠 Brainstorm", "✏️ Drafting"]
 tabs = st.tabs(TAB_LABELS)
