@@ -1,1 +1,5 @@
+# --- Core packages ---
+google-genai>=1.26.0      # new GenAI SDK with Search grounding  
+streamlit>=1.47.0         # current Streamlit release  
+pillow>=11.3.0            # image display (PIL)  
 
