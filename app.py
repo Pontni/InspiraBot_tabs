@@ -45,17 +45,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# --- Helper: safe image open (supports /assets fallback) ----------------------
-def _open_image_any(path1: str, path2: str):
-    for p in (path1, path2):
-        try:
-            if os.path.exists(p):
-                return Image.open(p)
-        except Exception:
-            pass
-    raise FileNotFoundError(f"Could not find image at {path1} or {path2}")
-
 # ---- Simple header (like the inspiration) ----
+st.image("assets/banner.png", use_container_width=True)
 st.title("InspiraBot")
 st.caption("A friendly AI for educational storytelling — follow the tabs left to right.")
 
