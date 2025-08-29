@@ -33,7 +33,7 @@ def build_form_context(form_data: dict) -> str:
 
 # --- Warning card helper (yellow) ---
 def lock_card(msg: str) -> None:
-    # Unified yellow warning card
+    # Plain yellow warning card
     st.warning(msg)
 
 # --- Gate: Outline requires a valid Key Pieces form ---
