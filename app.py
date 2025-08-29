@@ -23,7 +23,6 @@
 import streamlit as st
 from PIL import Image
 import os, time
-from textwrap import dedent
 
 # --- Google GenAI imports ---------------------------
 from google import genai
@@ -35,7 +34,16 @@ st.set_page_config(
     page_title="InspiraBot — Educational Story Builder",
     page_icon="🤖",
     layout="wide",
+    initial_sidebar_state="expanded",
 )
+#tabs 
+st.markdown("""
+<style>
+.stTabs [data-baseweb="tab"] { font-size: 1.1rem; padding: .6rem 1rem; }
+.stTabs [data-baseweb="tab"][aria-selected="true"] { border-bottom: 3px solid var(--primary-color); font-weight: 600; }
+</style>
+""", unsafe_allow_html=True)
+
 
 # --- Helper: safe image open (supports /assets fallback) ----------------------
 def _open_image_any(path1: str, path2: str):
