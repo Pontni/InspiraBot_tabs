@@ -31,9 +31,10 @@ from google.genai import types
 
 # Streamlit page setup
 st.set_page_config(
-    page_title="InspiraBot",
-    layout="centered",
-    initial_sidebar_state="expanded"
+    page_title="InspiraBot — Educational Story Builder",
+    page_icon="🤖",
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
 
 # --- Helper: safe image open (supports /assets fallback) ----------------------
@@ -46,7 +47,6 @@ def _open_image_any(path1: str, path2: str):
             pass
     raise FileNotFoundError(f"Could not find image at {path1} or {path2}")
 
-# === BEGIN PATCH: compact-header ===
 # Small header row: bot image (left) + title & subtitle (right)
 with st.container():
     col_img, col_text = st.columns([1, 5], vertical_alignment="center")
@@ -57,9 +57,6 @@ with st.container():
     with col_text:
         st.title("InspiraBot")
         st.caption("A friendly AI for educational storytelling — follow the tabs left to right.")
-# === END PATCH: compact-header ===
-
-st.title("InspiraBot")
 
 # Optional CSS — remove bubble/bg only for assistant messages using Avatar.png
 st.markdown(
