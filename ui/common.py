@@ -1,7 +1,8 @@
-
-import time
+# -*- coding: utf-8 -*-
 import streamlit as st
+import time
 
+# ---- Lightweight validators -------------------------------------------------
 def looks_gibberish(s: str) -> bool:
     s = (s or "").strip()
     if not s:
@@ -22,7 +23,9 @@ def looks_gibberish(s: str) -> bool:
         return True
     return False
 
+
 def build_form_context(form_data: dict) -> str:
+    """One-time context message used to prime the assistant after a valid submit."""
     lines = [
         "Use this context for guiding the user to write the story. Do not re-ask for the form or introduce yourself."
     ]
@@ -31,44 +34,80 @@ def build_form_context(form_data: dict) -> str:
     lines.append("Next: acknowledge briefly and proceed with outlining when prompted.")
     return "\n".join(lines)
 
-# --- Warning card helper (yellow) ---
+
+# ---- UI helpers -------------------------------------------------------------
 def lock_card(msg: str) -> None:
-    # Plain yellow warning card
+    """Plain yellow warning card (no emoji, per design)."""
     st.warning(msg)
 
-# --- Gate: Outline requires a valid Key Pieces form ---
 
-def render_chat_area(input_key: str):
-    # 1) Guard: if Key Pieces not valid, show the yellow warning and stop.
+def require_unlocked_for_outline() -> None:
+    """
+    Gate for the Outline tab. If the Key Pieces form is not valid yet,
+    show the warning and stop rendering the tab.
+    """
     if not st.session_state.get("form_valid", False):
         lock_card("Complete and submit the *Key Pieces form* to start the Outline.")
         st.stop()
 
-    # 2) Replay history (messages already stored in st.session_state.chat_history)
+
+# ---- Shared chat area -------------------------------------------------------
+def render_chat_area(input_key: str = "chat_input") -> None:
+    """
+    Replay chat history, accept a new user turn, and stream the assistant reply.
+
+    IMPORTANT:
+    - `input_key` must be UNIQUE per tab (e.g., "outline_chat_input", "synopsis_chat_input")
+      to avoid StreamlitDuplicateElementId errors.
+    - Requires that `st.session_state.chat` (the model chat object) and
+      `st.session_state.chat_history` (list of dicts) are initialized in app.py.
+    """
+    # Guard: ensure Key Pieces has been submitted, and chat session exists
+    if not st.session_state.get("form_valid", False):
+        lock_card("Complete and submit the *Key Pieces form* to start the Outline.")
+        st.stop()
+
+    if "chat" not in st.session_state:
+        st.error("Chat session is not initialized. Please restart the app or contact your teacher.")
+        st.stop()
+
+    st.session_state.setdefault("chat_history", [])
+    st.session_state.setdefault("assistant_avatar", "Avatar.png")
+
+    # 1) Replay history
     for msg in st.session_state.get("chat_history", []):
-        with st.chat_message(msg["role"], avatar=("👩🏼‍💻" if msg["role"]=="user" else st.session_state.get("assistant_avatar", "Avatar.png"))):
+        avatar = "👩🏼‍💻" if msg["role"] == "user" else st.session_state["assistant_avatar"]
+        with st.chat_message(msg["role"], avatar=avatar):
             st.markdown(msg["parts"])
 
-    # 3) Collect new user input — the **unique key** avoids the duplicate id error
+    # 2) Collect new user input (unique key per tab prevents duplicate ID)
     user_prompt = st.chat_input("Message InspiraBot…", key=input_key)
     if not user_prompt:
         return
 
-    # 4) Immediately echo the user turn to the UI and save to history
+    # 3) Echo user + save
     st.session_state.chat_history.append({"role": "user", "parts": user_prompt})
     with st.chat_message("user", avatar="👩🏼‍💻"):
         st.markdown(user_prompt)
 
-    # 5) Stream model reply via the **single shared chat session**
-    with st.chat_message("assistant", avatar=st.session_state.get("assistant_avatar", "Avatar.png")):
+    # 4) Stream assistant reply from the single shared chat session
+    full = ""
+    with st.chat_message("assistant", avatar=st.session_state["assistant_avatar"]):
         placeholder = st.empty()
         parts = []
-        for chunk in st.session_state.chat.send_message_stream(user_prompt):
-            if getattr(chunk, "text", None):
-                parts.append(chunk.text)
-                placeholder.markdown("".join(parts) + "▌")
-        full = "".join(parts) if parts else ""
-        placeholder.markdown(full or "_No response text received._")
+        try:
+            for chunk in st.session_state.chat.send_message_stream(user_prompt):
+                text = getattr(chunk, "text", None)
+                if text:
+                    parts.append(text)
+                    placeholder.markdown("".join(parts) + "▌")
+                    # small tick keeps the UI responsive without being heavy
+                    time.sleep(0.01)
+            full = "".join(parts) if parts else ""
+            placeholder.markdown(full or "_No response text received._")
+        except Exception as e:
+            full = f"❌ Error from Gemini (streaming): {e}"
+            placeholder.error(full)
 
-    # 6) Save assistant turn to history
+    # 5) Save assistant turn
     st.session_state.chat_history.append({"role": "assistant", "parts": full})
