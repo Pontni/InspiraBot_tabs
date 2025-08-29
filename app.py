@@ -58,6 +58,52 @@ with st.container():
         st.title("InspiraBot")
         st.caption("A friendly AI for educational storytelling — follow the tabs left to right.")
 
+# === BEGIN PATCH: ui-scale-like-demo ===
+WIDE_MAX_PX = 1240  # bump this up/down to taste (e.g., 1180–1280)
+
+st.markdown(f"""
+<style>
+/* keep content readable on ultra-wide displays */
+.block-container {{
+  max-width: {WIDE_MAX_PX}px;
+  margin: 0 auto;
+}}
+
+/* headings — a touch larger like the demo */
+.block-container h1 {{ font-size: 2.4rem; line-height: 1.2; margin-bottom: .25rem; }}
+.block-container h2 {{ font-size: 1.6rem; line-height: 1.25; }}
+/* optional: smaller caption spacing */
+.block-container p, .block-container .stMarkdown {{ line-height: 1.55; }}
+
+/* tabs — bigger targets + colored underline on active */
+.stTabs [data-baseweb="tab-list"] {{
+  gap: .75rem;
+  border-bottom: 1px solid #e9e9e9;
+}}
+.stTabs [data-baseweb="tab"] {{
+  padding: 0.55rem 0.95rem;
+  font-size: 1.05rem;
+  border-bottom: 3px solid transparent;
+}}
+.stTabs [data-baseweb="tab"][aria-selected="true"] {{
+  color: #e74c3c;                /* active color like the demo */
+  border-bottom-color: #e74c3c;  /* thick underline on active */
+  font-weight: 600;
+}}
+
+/* tighten vertical rhythm around the header */
+.block-container > div:first-child {{ padding-top: 0.5rem; }}
+
+/* optional: nudge emoji baseline in tabs */
+.stTabs [data-baseweb="tab"] span {{ position: relative; top: -1px; }}
+</style>
+""", unsafe_allow_html=True)
+
+# subtle divider under the header (optional)
+st.divider()
+# === END PATCH: ui-scale-like-demo ===
+
+
 # Optional CSS — remove bubble/bg only for assistant messages using Avatar.png
 st.markdown(
     "<style>"
