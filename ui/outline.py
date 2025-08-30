@@ -41,7 +41,7 @@ KICKOFF_HIDDEN = {
         "We are now beginning the *Scenario* stage. "
         "Ground all guidance in rules.txt (creativity scaffolds, narrative craft, age-appropriateness, "
         "keeping science central) and in the Key Pieces brief. "
-        "Help the student define world, time, and key places; "
+        "Help the student define world, time, and key places; encourage realistic constraints/resources "
         "that make the science necessary (e.g., equipment limits, safety, context). "
         "Ask ONE focused question at a time. Keep replies concise and supportive."
     ),
@@ -49,19 +49,18 @@ KICKOFF_HIDDEN = {
         "We are now beginning the *Conflict* stage. "
         "Ground all guidance in rules.txt (creativity strategies, possibility thinking, narrative creativity) "
         "and in the Key Pieces brief. "
-        "Guide toward a inner or extern conflict that drives the characters to resolve the conflict. Focus on clarifying the core problem. "
+        "Guide toward an inner or external conflict that drives the characters to resolve the problem. "
+        "Focus on clarifying the core science-grounded problem without spoilers. "
         "Ask ONE focused question at a time, briefly."
     ),
 }
 
-# ---------- Consolidation (bullets only) ----------
+# ---------- Consolidation (short lines only, no new ideas) ----------
 CONS_PROMPT = {
-    "characters": "Reframe the student's ideas for **Characters** as 3–6 3–6 readable lines to summarize the characters of the story. Bullets only. Do not generate new ideas.",
-    "scenario":   "Reframe the student's ideas for **Scenario** as 3–6 readable lines to summarize the scenario of the story. Do not generate new ideas.",
-    "conflict":   "Reframe the student's ideas for **Conflict** as 3–6 readable lines to summarize the conflict of the story. Do not generate new ideas.",
+    "characters": "Reframe the student's ideas for **Characters** as 2–4 short lines that summarize the characters. Do not invent new ideas.",
+    "scenario":   "Reframe the student's ideas for **Scenario** as 2–4 short lines that summarize the scenario. Do not invent new ideas.",
+    "conflict":   "Reframe the student's ideas for **Conflict** as 2–4 short lines that summarize the conflict. Do not invent new ideas.",
 }
-
-
 def _init_outline_state():
     ss = st.session_state
     ss.setdefault("outline_stage", "characters")
