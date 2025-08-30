@@ -172,16 +172,32 @@ def render():
     st.header("💭 Outline")
     st.write("Define your characters, setting, and the central problem. Ask for nudges any time.")
 
-    # Section A: Summary (top)
-    _summary_block()
-    st.divider()
+    # Two-column layout: summary (narrow) | workbench (wide)
+    colL, colR = st.columns([1, 2.2], vertical_alignment="top")
 
-    # Section B: Workbench (sequential)
-    _workbench("characters", "Characters", "outline_characters_input")
-    _workbench("scenario", "Scenario", "outline_scenario_input",
-               gate_msg="Complete **Characters** first to unlock Scenario.")
-    _workbench("conflict", "Conflict", "outline_conflict_input",
-               gate_msg="Complete **Scenario** first to unlock Conflict.")
+    # Left: collapsible outline summary
+    with colL:
+        _summary_block()
 
-    if st.session_state.get("outline_stage") == "done":
-        st.info("Outline complete. You can proceed to **📝 Synopsis** when ready.")
+    # Right: only the current stage workbench
+    with colR:
+        stage = st.session_state.get("outline_stage", "characters")
+
+        if stage == "characters":
+            _workbench("characters", "Characters", "outline_characters_input")
+
+        elif stage == "scenario":
+            # show a small green reminder that Characters was saved
+            if st.session_state["outline_done"].get("characters"):
+                st.success("Characters completed. You can refine in chat or continue anytime.")
+            _workbench("scenario", "Scenario", "outline_scenario_input",
+                       gate_msg="Complete **Characters** first to unlock Scenario.")
+
+        elif stage == "conflict":
+            if st.session_state["outline_done"].get("scenario"):
+                st.success("Scenario completed. You can refine in chat or continue anytime.")
+            _workbench("conflict", "Conflict", "outline_conflict_input",
+                       gate_msg="Complete **Scenario** first to unlock Conflict.")
+
+        else:  # stage == "done"
+            st.success("🎉 Outline complete! You can proceed to **📝 Synopsis** when ready.")
