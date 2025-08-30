@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import streamlit as st
 import time
 
@@ -54,60 +53,51 @@ def require_unlocked_for_outline() -> None:
 # ---- Shared chat area -------------------------------------------------------
 def render_chat_area(input_key: str = "chat_input") -> None:
     """
-    Replay chat history, accept a new user turn, and stream the assistant reply.
-
-    IMPORTANT:
-    - `input_key` must be UNIQUE per tab (e.g., "outline_chat_input", "synopsis_chat_input")
-      to avoid StreamlitDuplicateElementId errors.
-    - Requires that `st.session_state.chat` (the model chat object) and
-      `st.session_state.chat_history` (list of dicts) are initialized in app.py.
+    Replay history, show chat input at the bottom, and process a new turn.
+    - `input_key` must be UNIQUE per tab.
     """
-    # Guard: ensure Key Pieces has been submitted, and chat session exists
     if not st.session_state.get("form_valid", False):
         lock_card("Complete and submit the *Key Pieces form* to start the Outline.")
         st.stop()
 
     if "chat" not in st.session_state:
-        st.error("Chat session is not initialized. Please restart the app or contact your teacher.")
+        st.error("Chat session is not initialized. Please restart the app.")
         st.stop()
 
     st.session_state.setdefault("chat_history", [])
     st.session_state.setdefault("assistant_avatar", "Avatar.png")
 
-    # 1) Replay history
-    for msg in st.session_state.get("chat_history", []):
+    # 1) Replay history FIRST (so input stays below)
+    for msg in st.session_state["chat_history"]:
         avatar = "👩🏼‍💻" if msg["role"] == "user" else st.session_state["assistant_avatar"]
         with st.chat_message(msg["role"], avatar=avatar):
             st.markdown(msg["parts"])
 
-    # 2) Collect new user input (unique key per tab prevents duplicate ID)
+    # 2) Chat input at the very bottom
     user_prompt = st.chat_input("Message InspiraBot…", key=input_key)
     if not user_prompt:
         return
 
-    # 3) Echo user + save
+    # 3) Process the new user turn, then rerun so input returns to bottom
     st.session_state.chat_history.append({"role": "user", "parts": user_prompt})
     with st.chat_message("user", avatar="👩🏼‍💻"):
         st.markdown(user_prompt)
 
-    # 4) Stream assistant reply from the single shared chat session
     full = ""
     with st.chat_message("assistant", avatar=st.session_state["assistant_avatar"]):
         placeholder = st.empty()
         parts = []
         try:
             for chunk in st.session_state.chat.send_message_stream(user_prompt):
-                text = getattr(chunk, "text", None)
-                if text:
-                    parts.append(text)
+                txt = getattr(chunk, "text", None)
+                if txt:
+                    parts.append(txt)
                     placeholder.markdown("".join(parts) + "▌")
-                    # small tick keeps the UI responsive without being heavy
-                    time.sleep(0.01)
             full = "".join(parts) if parts else ""
             placeholder.markdown(full or "_No response text received._")
         except Exception as e:
             full = f"❌ Error from Gemini (streaming): {e}"
             placeholder.error(full)
 
-    # 5) Save assistant turn
     st.session_state.chat_history.append({"role": "assistant", "parts": full})
+    st.rerun()
