@@ -1,6 +1,6 @@
-
+# === ui/key_pieces.py ===
 import streamlit as st
-from ui.common import looks_gibberish, build_form_context
+from ui.common import looks_gibberish, build_form_context, lock_card
 
 def render():
     # Heading + short explainer
