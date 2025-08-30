@@ -4,6 +4,8 @@ from ui.common import (
     require_unlocked_for_outline,
     render_chat_area,
     looks_gibberish,
+    send_hidden,
+    consolidate_outline_item,
     lock_card,
 )
 
@@ -26,156 +28,143 @@ KICKOFFS = {
     ),
 }
 
-# ---------- Hidden one-time nudges (grounded in rules + brief) ----------
+# ---------- Hidden assistant nudges (ground in rules.txt + Key Pieces) ----------
 KICKOFF_HIDDEN = {
     "characters": (
-        "We are now beginning the *Characters* stage of an educational story. "
-        "Ground guidance in rules.txt (creativity strategies, narrative moves, possibility thinking, science centrality) "
-        "and in the Key Pieces brief (level, concept, genre, setting, goals). "
-        "Ask ONE focused question at a time. Do not re-ask the form."
+        "We are beginning the Characters stage of an educational story. "
+        "Ground guidance in rules.txt (creativity strategies, narrative craft, possibility thinking, science centrality) "
+        "and in the Key Pieces brief supplied earlier. "
+        "Ask ONE focused question at a time. Be concise and encouraging."
     ),
     "scenario": (
-        "We are now beginning the *Scenario* stage. Ground in rules.txt and Key Pieces. "
-        "Help define world/time/places and constraints that keep the science necessary. "
-        "Ask ONE focused question at a time; keep replies concise and encouraging."
+        "We are beginning the Scenario stage. Ground guidance in rules.txt + Key Pieces. "
+        "Help define world/time/key places and constraints that keep the science central. "
+        "Ask ONE focused question at a time. Keep replies brief."
     ),
     "conflict": (
-        "We are now beginning the *Conflict* stage. Ground in rules.txt and Key Pieces. "
-        "Guide toward a clear, age-appropriate central problem (outer or inner) that drives inquiry. "
+        "We are beginning the Conflict stage. Ground guidance in rules.txt + Key Pieces. "
+        "Guide toward a clear central tension (outer or inner) that propels inquiry. "
         "Ask ONE focused question at a time; no spoilers."
     ),
 }
 
-# ---------- Local helpers (kept in this tab) ----------
-def _send_hidden(text: str) -> None:
-    chat = st.session_state.get("chat")
-    if not chat or not text:
-        return
-    try:
-        _ = chat.send_message(text)  # hidden—no bubbles
-    except Exception:
-        pass
-
-def _consolidate(instruction: str) -> str:
-    """Ask the model to reframe into 2–4 short lines; never block if empty."""
-    chat = st.session_state.get("chat")
-    if not chat:
-        return ""
-    try:
-        resp = chat.send_message(instruction)
-        txt = (getattr(resp, "text", "") or "").strip()
-        if txt:
-            return txt
-    except Exception:
-        pass
-    # Safe fallback: last user turn
-    for m in reversed(st.session_state.get("chat_history", [])):
-        if m.get("role") == "user":
-            return f"- {m.get('parts','').strip()}"
-    return ""
-
-# 2–4 lines, no new ideas
+# ---------- Consolidation prompts (2–4 plain lines, no bullets) ----------
 CONS_PROMPT = {
-    "characters": "Reframe the student's ideas for **Characters** as 2–4 short lines. Do not invent new ideas.",
-    "scenario":   "Reframe the student's ideas for **Scenario** as 2–4 short lines. Do not invent new ideas.",
-    "conflict":   "Reframe the student's ideas for **Conflict** as 2–4 short lines. Do not invent new ideas.",
+    "characters": "Reframe the student's ideas for **Characters** as 2–4 short plain-text lines (no bullets). Do not invent new ideas.",
+    "scenario":   "Reframe the student's ideas for **Scenario** as 2–4 short plain-text lines (no bullets). Do not invent new ideas.",
+    "conflict":   "Reframe the student's ideas for **Conflict** as 2–4 short plain-text lines (no bullets). Do not invent new ideas.",
 }
 
-def _init_state():
+def _init_outline_state():
     ss = st.session_state
-    ss.setdefault("outline_stage", "characters")  # characters → scenario → conflict → done
+    ss.setdefault("outline_stage", "characters")  # characters -> scenario -> conflict -> done
     ss.setdefault("outline_started", {"characters": False, "scenario": False, "conflict": False})
     ss.setdefault("outline_done", {"characters": False, "scenario": False, "conflict": False})
     ss.setdefault("outline_summary", {"characters": "", "scenario": "", "conflict": ""})
+    # Remember the index in chat_history where each stage started
     ss.setdefault("outline_start_idx", {
         "characters": len(ss.get("chat_history", [])),
         "scenario": 0,
-        "conflict": 0,
+        "conflict": 0
     })
     ss.setdefault("outline_feedback", "")
 
 def _kickoff_once(item: str):
+    """Hidden kickoff to steer assistant; record where this stage started."""
     ss = st.session_state
     if not ss["outline_started"][item]:
-        _send_hidden(KICKOFF_HIDDEN[item])
+        send_hidden(KICKOFF_HIDDEN[item])
         ss["outline_started"][item] = True
         ss["outline_start_idx"][item] = len(ss.get("chat_history", []))
 
 def _latest_user_since(item: str) -> str:
+    """Most recent user message since the stage began."""
     ss = st.session_state
     start = ss["outline_start_idx"].get(item, 0)
     latest = ""
     for i, m in enumerate(ss.get("chat_history", [])):
         if i >= start and m.get("role") == "user":
             latest = m.get("parts", "")
-    return latest.strip()
+    return latest
 
-def _complete(item: str, label: str):
+def _complete_item(item: str, label: str):
+    """Validate, consolidate (2–4 lines), save, advance stage, then rerun."""
     ss = st.session_state
     user_text = _latest_user_since(item)
     if looks_gibberish(user_text):
         ss["outline_feedback"] = f"Please provide a clearer idea for **{label}** before completing."
         return
 
-    bullets = _consolidate(CONS_PROMPT[item]).strip() or f"- {user_text}"
-    ss["outline_summary"][item] = bullets
+    summary = consolidate_outline_item(CONS_PROMPT[item])
+    ss["outline_summary"][item] = summary
     ss["outline_done"][item] = True
     ss["outline_feedback"] = f"Great — **{label}** saved. You can move on."
 
-    # advance
-    ss["outline_stage"] = (
-        "scenario" if item == "characters" else
-        "conflict" if item == "scenario" else
-        "done"
-    )
+    # Advance sequence
+    if item == "characters":
+        ss["outline_stage"] = "scenario"
+    elif item == "scenario":
+        ss["outline_stage"] = "conflict"
+    else:
+        ss["outline_stage"] = "done"
 
-def _summary():
-    with st.expander("🗒️ Outline Summary", expanded=True):
-        for key, label in [("characters","Characters"),("scenario","Scenario"),("conflict","Conflict")]:
-            done = st.session_state["outline_done"].get(key, False)
+    st.rerun()
+
+def _summary_block():
+    ss = st.session_state
+    with st.expander("🗒️ Outline Summary", expanded=False):  # collapsed by default
+        for key, label in [("characters", "Characters"), ("scenario", "Scenario"), ("conflict", "Conflict")]:
+            done = ss["outline_done"].get(key, False)
             st.markdown(f"**{label}** {'✅' if done else '•'}")
-            text = st.session_state["outline_summary"].get(key, "").strip()
+            text = ss["outline_summary"].get(key, "").strip()
             if text:
                 st.markdown(text)
             else:
                 st.caption("No summary yet.")
 
-def _stage_ui(item: str, label: str, input_key: str):
-    # one-time steer
+def _workbench(item: str, label: str, input_key: str):
+    """Single-stage work area with kickoff, chat, and complete button."""
     _kickoff_once(item)
 
-    st.subheader(f"{'👤' if item=='characters' else '🗺️' if item=='scenario' else '⚡'} {label}")
+    st.subheader(f"{'👤' if item=='characters' else '🗺️' if item=='scenario' else '⚔️'} {label}")
     st.info(KICKOFFS[item])
 
-    # chat (input above messages – old feel)
+    # Chat (history above, input below)
     render_chat_area(input_key=input_key)
 
-    # complete button (below chat – old app behavior)
-    btn_label = f"✅ Complete {label}" if not st.session_state['outline_done'][item] else f"🔄 Re-consolidate {label}"
+    # Complete / reconsolidate
+    btn_label = f"✅ Complete {label}"
     if st.button(btn_label, use_container_width=True, key=f"btn_{item}"):
-        _complete(item, label)
+        _complete_item(item, label)
 
+    # Feedback after click
     fb = st.session_state.get("outline_feedback", "")
     if fb:
-        (st.success if st.session_state["outline_done"][item] else st.error)(fb)
+        # show success only if this stage is already marked done
+        if st.session_state["outline_done"].get(item, False):
+            st.success(fb)
+        else:
+            st.error(fb)
 
 def render():
     require_unlocked_for_outline()
-    _init_state()
+    _init_outline_state()
 
     st.header("💭 Outline")
     st.write("Define your characters, setting, and the central problem. Ask for nudges any time.")
 
-    _summary()
+    # Summary up top (collapsed by default)
+    _summary_block()
     st.divider()
 
     stage = st.session_state.get("outline_stage", "characters")
+
     if stage == "characters":
-        _stage_ui("characters", "Characters", "outline_char_input")
+        _workbench("characters", "Characters", "outline_characters_input")
     elif stage == "scenario":
-        _stage_ui("scenario", "Scenario", "outline_scn_input")
+        _workbench("scenario", "Scenario", "outline_scenario_input")
     elif stage == "conflict":
-        _stage_ui("conflict", "Conflict", "outline_cfl_input")
+        _workbench("conflict", "Conflict", "outline_conflict_input")
     else:
-        st.success("🎉 Outline complete! You can proceed to **📝 Synopsis** when ready.")
+        st.info("🎉 Outline complete. You can proceed to **📝 Synopsis** when ready.")
 # === END FILE ===
