@@ -27,28 +27,38 @@ KICKOFFS = {
     ),
 }
 
-# ---------- One-time hidden nudges for the assistant ----------
+# ---------- One-time hidden nudges for the assistant (ground in rules.txt + Key Pieces) ----------
 KICKOFF_HIDDEN = {
     "characters": (
-        "We are now beginning the Characters stage of an educational story. "
-        "Use the Key Pieces brief and the rules to guide creative, possibility-thinking ideation. "
-        "Ask ONE focused question at a time. Keep replies short and encouraging."
+        "We are now beginning the *Characters* stage of an educational story. "
+        "Ground all guidance in the background knowledge and teaching guidelines from rules.txt "
+        "(creativity strategies, narrative writing moves, possibility thinking, science centrality). "
+        "Also use the Key Pieces brief (educational level, scientific concept, genre, setting, goals). "
+        "Drive possibility thinking with short, encouraging nudges. Ask ONE focused question at a time. "
+        "Do not re-ask the form; build on the student's last message."
     ),
     "scenario": (
-        "We are now beginning the Scenario stage. Help the student define world, time, and key places; "
-        "encourage constraints that keep science central. Ask ONE focused question at a time."
+        "We are now beginning the *Scenario* stage. "
+        "Ground all guidance in rules.txt (creativity scaffolds, narrative craft, age-appropriateness, "
+        "keeping science central) and in the Key Pieces brief. "
+        "Help the student define world, time, and key places; "
+        "that make the science necessary (e.g., equipment limits, safety, context). "
+        "Ask ONE focused question at a time. Keep replies concise and supportive."
     ),
     "conflict": (
-        "We are now beginning the Conflict stage. Guide toward a science-grounded central problem or tension. "
-        "Ensure it’s age-appropriate and invites inquiry. Ask ONE focused question at a time."
+        "We are now beginning the *Conflict* stage. "
+        "Ground all guidance in rules.txt (creativity strategies, possibility thinking, narrative creativity) "
+        "and in the Key Pieces brief. "
+        "Guide toward a inner or extern conflict that drives the characters to resolve the conflict. Focus on clarifying the core problem. "
+        "Ask ONE focused question at a time, briefly."
     ),
 }
 
 # ---------- Consolidation (bullets only) ----------
 CONS_PROMPT = {
-    "characters": "Reframe the student's ideas for **Characters** as 3–6 short bullet points. Bullets only.",
-    "scenario":   "Reframe the student's ideas for **Scenario** as 3–6 short bullet points. Bullets only.",
-    "conflict":   "Reframe the student's ideas for **Conflict** as 3–6 short bullet points. Bullets only.",
+    "characters": "Reframe the student's ideas for **Characters** as 3–6 3–6 readable lines to summarize the characters of the story. Bullets only. Do not generate new ideas.",
+    "scenario":   "Reframe the student's ideas for **Scenario** as 3–6 readable lines to summarize the scenario of the story. Do not generate new ideas.",
+    "conflict":   "Reframe the student's ideas for **Conflict** as 3–6 readable lines to summarize the conflict of the story. Do not generate new ideas.",
 }
 
 
