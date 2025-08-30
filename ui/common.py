@@ -35,32 +35,41 @@ def build_form_context(form_data: dict) -> str:
 
 def send_hidden(text: str) -> None:
     """
-    Send a hidden instruction into the active chat session so the model is primed,
-    without adding UI bubbles. Safe to call multiple times (no-ops if chat missing).
+    Send a hidden priming message to the active chat (no UI bubbles).
+    Does nothing if the chat session isn't ready yet.
     """
     chat = st.session_state.get("chat")
     if not chat or not text:
         return
     try:
-        # plain, non-streaming send; do NOT append to chat_history
-        _ = chat.send_message(text)
+        _ = chat.send_message(text)   # do NOT append to chat_history
     except Exception:
         pass
 
 def consolidate_outline_item(instruction: str) -> str:
     """
-    Ask the model to reframe the student's most recent ideas for the current item.
-    Returns plain text; does NOT add bubbles to the UI.
+    Ask the model to reframe the student's latest ideas for the current item.
+    Returns plain text; never raises; falls back to the student's last turn if needed.
     """
     chat = st.session_state.get("chat")
     if not chat:
         return ""
+
+    # Try the model first
     try:
         resp = chat.send_message(instruction)
-        return getattr(resp, "text", "") or ""
+        text = (getattr(resp, "text", "") or "").strip()
+        if text:
+            return text
     except Exception:
-        return ""
+        pass
 
+    # Fallback: last user turn in the history (so we never block stage advance)
+    history = st.session_state.get("chat_history", [])
+    for msg in reversed(history):
+        if msg.get("role") == "user":
+            return f"- {msg.get('parts','').strip()}"
+    return ""
 
 # ---- UI helpers -------------------------------------------------------------
 def lock_card(msg: str) -> None:
