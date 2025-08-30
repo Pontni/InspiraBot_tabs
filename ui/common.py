@@ -33,6 +33,34 @@ def build_form_context(form_data: dict) -> str:
     lines.append("Next: acknowledge briefly and proceed with outlining when prompted.")
     return "\n".join(lines)
 
+def send_hidden(text: str) -> None:
+    """
+    Send a hidden instruction into the active chat session so the model is primed,
+    without adding UI bubbles. Safe to call multiple times (no-ops if chat missing).
+    """
+    chat = st.session_state.get("chat")
+    if not chat or not text:
+        return
+    try:
+        # plain, non-streaming send; do NOT append to chat_history
+        _ = chat.send_message(text)
+    except Exception:
+        pass
+
+def consolidate_outline_item(instruction: str) -> str:
+    """
+    Ask the model to reframe the student's most recent ideas for the current item.
+    Returns plain text; does NOT add bubbles to the UI.
+    """
+    chat = st.session_state.get("chat")
+    if not chat:
+        return ""
+    try:
+        resp = chat.send_message(instruction)
+        return getattr(resp, "text", "") or ""
+    except Exception:
+        return ""
+
 
 # ---- UI helpers -------------------------------------------------------------
 def lock_card(msg: str) -> None:
