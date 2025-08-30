@@ -1,95 +1,115 @@
-# === ui/key_pieces.py ===
+# === BEGIN FILE: ui/key_pieces.py ===
 import streamlit as st
-from ui.common import looks_gibberish, build_form_context, lock_card
+from ui.common import build_form_context, looks_gibberish
+
+def _ensure_defaults():
+    ss = st.session_state
+    ss.setdefault("form_valid", False)
+    ss.setdefault("form_data", {})
+    ss.setdefault("editing_form", True)   # show form by default until submitted
+    ss.setdefault("chat_history", [])
+    ss.setdefault("assistant_avatar", "assets/Avatar.png")
+    ss.setdefault("model_name", "gemini-2.0-flash")
+
+def _submit_form(form_vals: dict):
+    """Create/refresh the system prompt + chat session when the form is submitted."""
+    from google import generativeai as genai
+
+    ss = st.session_state
+    ss["form_data"] = form_vals
+    ss["form_valid"] = True
+    ss["editing_form"] = False
+
+    # Build the system instruction: rules + form context
+    rules = ss.get("rules_text", "")
+    form_ctx = build_form_context(ss["form_data"])
+    system_text = (rules or "").strip() + "\n\n" + form_ctx
+
+    # (Re)create model + chat session and reset UI-visible history
+    model_name = ss.get("model_name", "gemini-2.0-flash")
+    model = genai.GenerativeModel(model_name, system_instruction=system_text)
+    chat = model.start_chat(history=[])
+    ss["model_name"] = model_name
+    ss["model"] = model
+    ss["chat"] = chat
+    ss["chat_history"] = []
+
 
 def render():
-    # Heading + short explainer
+    _ensure_defaults()
+
     st.header("🌱 Key Pieces")
-    st.write(
-        "Set the key details for your story"
-    )
+    st.caption("Fill this brief so InspiraBot can tailor its guidance to your project.")
 
-    # --- FORM --------------------------------------------------------------
-    with st.form("story_form"):
-        educational_level = st.text_input(
-            "Educational level",
-            placeholder="e.g., Elementary school, Primary school, Secondary school, University",
-            value=st.session_state.get("form_data", {}).get("Educational level", ""),
+    ss = st.session_state
+
+    # Toggle back to edit mode
+    if ss.get("form_valid") and not ss.get("editing_form"):
+        if st.button("✏️ Modify form", help="Edit and resubmit the brief"):
+            ss["editing_form"] = True
+
+    if ss.get("editing_form", True):
+        with st.form("key_pieces_form"):
+            col1, col2 = st.columns(2)
+            with col1:
+                level = st.text_input(
+                    "Targeted Educational Level",
+                    value=ss["form_data"].get("level", ""),
+                    placeholder="e.g., Grade 5 / Secondary / Undergraduate"
+                )
+                concept = st.text_input(
+                    "Scientific Concept",
+                    value=ss["form_data"].get("concept", ""),
+                    placeholder="e.g., Photosynthesis"
+                )
+                genre = st.text_input(
+                    "Genre",
+                    value=ss["form_data"].get("genre", ""),
+                    placeholder="e.g., Fantasy, Sci-Fi, Mystery"
+                )
+            with col2:
+                setting = st.text_input(
+                    "Setting",
+                    value=ss["form_data"].get("setting", ""),
+                    placeholder="e.g., School greenhouse, Martian colony"
+                )
+                goals = st.text_area(
+                    "Additional goals / curricular links",
+                    value=ss["form_data"].get("goals", ""),
+                    height=120,
+                    placeholder="e.g., SDG links, assessment goals, constraints…"
+                )
+
+            # Right-aligned Submit button
+            col_empty, col_btn = st.columns([4, 1])
+            with col_btn:
+                submitted = st.form_submit_button("✅ Submit", use_container_width=True)
+
+            if submitted:
+                if looks_gibberish(concept):
+                    st.error("Please provide a clearer *Scientific Concept* before submitting.")
+                else:
+                    _submit_form(
+                        {
+                            "level": level.strip(),
+                            "concept": concept.strip(),
+                            "genre": genre.strip(),
+                            "setting": setting.strip(),
+                            "goals": goals.strip(),
+                        }
+                    )
+                    st.success("Key Pieces saved. **💭 Outline** is now unlocked.")
+    else:
+        # Read-only view
+        data = ss.get("form_data", {})
+        st.subheader("Brief (read-only)")
+        st.markdown(
+            f"""
+- **Level:** {data.get("level","—")}
+- **Concept:** {data.get("concept","—")}
+- **Genre:** {data.get("genre","—")}
+- **Setting:** {data.get("setting","—")}
+- **Goals:** {data.get("goals","—")}
+            """.strip()
         )
-        topic = st.text_input(
-            "Scientific concept or topic",
-            placeholder="e.g., Photosynthesis, Human digestion, Renewable energy, Chemical reactions",
-            value=st.session_state.get("form_data", {}).get("Scientific concept or topic", ""),
-        )
-        genre = st.text_input(
-            "Genre",
-            placeholder="e.g., Fantasy, Adventures, Science fiction, Romance",
-            value=st.session_state.get("form_data", {}).get("Genre", ""),
-        )
-        setting = st.text_input(
-            "Story setting",
-            placeholder="e.g., Imaginary World, Real World, Blended",
-            value=st.session_state.get("form_data", {}).get("Story setting", ""),
-        )
-        goals = st.text_area(
-            "Additional information",
-            placeholder="e.g., Specific teaching goals, transdisciplinar connections, SDG integration",
-            value=st.session_state.get("form_data", {}).get("Additional information", ""),
-        )
-
-        # Buttons row: Modify (left) | Submit (right)
-        left, right = st.columns([1, 1])
-        with left:
-            modify = st.form_submit_button("✏️ Modify", use_container_width=True)
-        with right:
-            submitted = st.form_submit_button("✅ Submit", use_container_width=True)
-
-    # --- STATE DEFAULTS ----------------------------------------------------
-    st.session_state.setdefault("form_data", {})
-    st.session_state.setdefault("form_feedback", "")
-    st.session_state.setdefault("form_valid", False)
-    st.session_state.setdefault("form_context_sent", False)
-
-    # --- SUBMIT HANDLER ----------------------------------------------------
-    if submitted:
-        st.session_state["form_data"] = {
-            "Educational level": (educational_level or "").strip(),
-            "Scientific concept or topic": (topic or "").strip(),
-            "Genre": (genre or "").strip(),
-            "Story setting": (setting or "").strip(),
-            "Additional information": (goals or "").strip(),
-        }
-
-        problems = []
-        # Basic “looks like real text” validation for key fields
-        for label in ("Educational level", "Scientific concept or topic", "Genre", "Story setting"):
-            value = st.session_state["form_data"][label]
-            if looks_gibberish(value):
-                problems.append(f"Please clarify **{label}** (avoid random strings).")
-
-        if problems:
-            st.session_state["form_feedback"] = " ".join(problems)
-            st.session_state["form_valid"] = False
-        else:
-            st.session_state["form_feedback"] = "Great — form saved. You can now go to **💭 Outline**."
-            st.session_state["form_valid"] = True
-
-            # One-time: silently prime the chat with the validated brief
-            if not st.session_state.get("form_context_sent", False):
-                try:
-                    context_msg = build_form_context(st.session_state["form_data"])
-                    # Hidden priming message (no UI echo)
-                    st.session_state.chat.send_message(context_msg)
-                    st.session_state["form_context_sent"] = True
-                except Exception as e:
-                    st.warning(f"Could not send form context to the assistant: {e}")
-
-    elif modify:
-        st.info("✏️ Adjust any field above and press **Submit** when ready.")
-
-    # --- FEEDBACK ----------------------------------------------------------
-    if st.session_state["form_feedback"]:
-        if st.session_state["form_valid"]:
-            st.success(st.session_state["form_feedback"])
-        else:
-            st.error(st.session_state["form_feedback"])
+# === END FILE: ui/key_pieces.py ===
