@@ -99,23 +99,28 @@ def _latest_user_since(item: str) -> str:
 def _complete_item(item: str, label: str):
     ss = st.session_state
     user_text = _latest_user_since(item)
+
+    # Basic sanity: don't accept gibberish or empty
     if looks_gibberish(user_text):
         ss["outline_feedback"] = f"Please provide a clearer idea for **{label}** before completing."
         return
 
-    bullets = consolidate_outline_item(CONS_PROMPT[item])
+    # Consolidate; if model returns empty, we keep a minimal fallback in the helper
+    bullets = consolidate_outline_item(CONS_PROMPT[item]).strip()
+    if not bullets:
+        bullets = f"- {user_text.strip()}"
+
     ss["outline_summary"][item] = bullets
     ss["outline_done"][item] = True
     ss["outline_feedback"] = f"Great — **{label}** saved. You can move on."
 
-    # Advance stage
+    # Advance stage (Characters → Scenario → Conflict → done)
     if item == "characters":
         ss["outline_stage"] = "scenario"
     elif item == "scenario":
         ss["outline_stage"] = "conflict"
     else:
         ss["outline_stage"] = "done"
-
 
 def _summary_block():
     ss = st.session_state
@@ -144,25 +149,23 @@ def _workbench(item: str, label: str, input_key: str, gate_msg: str = ""):
     # One-time hidden kickoff to steer the assistant
     _kickoff_once(item)
 
-    # Visible task for the student (hard-coded)
-    st.subheader(f"{'👤' if item=='characters' else '🗺️' if item=='scenario' else '⚡'} {label}")
-    st.info(KICKOFFS[item])
+    # Visual wrapper so each section is clearly separated
+    with st.container(border=True):
+        st.subheader(f"{'👤' if item=='characters' else '🗺️' if item=='scenario' else '⚡'} {label}")
+        st.info(KICKOFFS[item])
 
-    # Chat area (input below messages)
-    render_chat_area(input_key=input_key)
+        # 🔼 Button first → keeps chat input at the very bottom of the page
+        btn_label = f"✅ Complete {label}" if not ss['outline_done'][item] else f"🔄 Re-consolidate {label}"
+        if st.button(btn_label, use_container_width=True, key=f"btn_{item}"):
+            _complete_item(item, label)
 
-    # Complete / Reconsolidate
-    btn_label = f"✅ Complete {label}" if not ss['outline_done'][item] else f"🔄 Re-consolidate {label}"
-    if st.button(btn_label, use_container_width=True, key=f"btn_{item}"):
-        _complete_item(item, label)
+        # Feedback (shows immediately after click)
+        fb = ss.get("outline_feedback", "")
+        if fb:
+            (st.success if ss["outline_done"][item] else st.error)(fb)
 
-    # Feedback
-    fb = ss.get("outline_feedback", "")
-    if fb:
-        if ss["outline_done"][item]:
-            st.success(fb)
-        else:
-            st.error(fb)
+        # 🔽 Chat area last → st.chat_input() will render at page bottom
+        render_chat_area(input_key=input_key)
 
 
 def render():
